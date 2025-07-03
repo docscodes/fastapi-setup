@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException, status
-from ..schemas.post import Post, PostCreate
+from ..schemas.post import Post, PostCreate, PostPartialUpdate
 from ..db import db
 
 router = APIRouter()
@@ -38,5 +38,19 @@ async def create(post_create: PostCreate) -> Post:
 async def delete(id: int) -> None:
     try:
         db.posts.pop(id)
+    except KeyError:
+        raise HTTPException(status.HTTP_404_NOT_FOUND)
+
+
+@router.patch("/posts/{id}", response_model=Post)
+async def partial_update(id: int, post_update: PostPartialUpdate):
+    try:
+        post_db = db.posts[id]
+
+        updated_fields = post_update.dict(exclude_unset=True)
+        updated_post = post_db.copy(update=updated_fields)
+
+        db.posts[id] = updated_post
+        return updated_post
     except KeyError:
         raise HTTPException(status.HTTP_404_NOT_FOUND)
